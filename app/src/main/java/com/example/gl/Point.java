@@ -22,7 +22,7 @@ public class Point {
     private int positionHandle;
     private int colorHandle;
     private final int mProgram;
-    private final int vertexCount;
+    private int vertexCount;
     private final int vertexStride = COORDS_PER_VERTEX * 4; // 4 bytes per vertex
     private int vPMatrixHandle;
     private Context context;
@@ -40,6 +40,10 @@ public class Point {
     float color[]={ 0.63671875f, 0.76953125f, 0.22265625f, 0.50f };
 
     public Point(Context context, float[] pointsCoords){
+        int vertexShaderId = ShaderUtils.createShader(context, GL_VERTEX_SHADER, R.raw.vertex_shader);
+        int fragmentShaderId = ShaderUtils.createShader(context, GL_FRAGMENT_SHADER, R.raw.fragment_shader);
+        mProgram = ShaderUtils.createProgram(vertexShaderId, fragmentShaderId);
+        glLinkProgram(mProgram);
         allPoints = new float[pointsCoords.length+ linesCoord.length];
         this.pointsCoords = pointsCoords;
         vertexCount = pointsCoords.length/COORDS_PER_VERTEX;
@@ -53,10 +57,7 @@ public class Point {
         ByteBuffer bb = ByteBuffer.allocateDirect(
                 allPoints.length*4);
         bb.order(ByteOrder.nativeOrder());
-        int vertexShaderId = ShaderUtils.createShader(context, GL_VERTEX_SHADER, R.raw.vertex_shader);
-        int fragmentShaderId = ShaderUtils.createShader(context, GL_FRAGMENT_SHADER, R.raw.fragment_shader);
-        mProgram = ShaderUtils.createProgram(vertexShaderId, fragmentShaderId);
-        glLinkProgram(mProgram);
+
         // create a floating point buffer from the ByteBuffer
         vertexBuffer = bb.asFloatBuffer();
         // add the coordinates to the FloatBuffer
@@ -98,7 +99,7 @@ public class Point {
         color[1]= 0.76953125f;
         color[2] = 0.22265625f;
         color[3] = 0.50f;
-        drawPoints(10, color);
+        drawPoints(5, color);
         // Disable vertex array
         GLES20.glDisableVertexAttribArray(positionHandle);
     }
@@ -132,4 +133,31 @@ public class Point {
         glLineWidth(size);//size points
         GLES20.glDrawArrays(GL_POINTS,6,vertexCount);
     }
+    public void setPointsCords(float[] data){
+        this.pointsCoords = data;
+        allPoints = new float[pointsCoords.length+ linesCoord.length];
+        vertexCount = pointsCoords.length/COORDS_PER_VERTEX;
+        int i=0;
+        for(;i<linesCoord.length;i++){
+            allPoints[i]=linesCoord[i];
+        }
+        for(int j = 0; j<pointsCoords.length; i++,j++){
+            allPoints[i]=pointsCoords[j];
+        }
+        ByteBuffer bb = ByteBuffer.allocateDirect(
+                allPoints.length*4);
+        bb.order(ByteOrder.nativeOrder());
+
+        // create a floating point buffer from the ByteBuffer
+        vertexBuffer = bb.asFloatBuffer();
+        // add the coordinates to the FloatBuffer
+        vertexBuffer.put(allPoints);
+        // set the buffer to read the first coordinate
+        vertexBuffer.position(0);
+    }
+
+    private void makeProgram(){
+
+    }
+
 }

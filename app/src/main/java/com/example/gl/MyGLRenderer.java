@@ -1,27 +1,15 @@
 package com.example.gl;
 
-import static android.opengl.GLES20.GL_FLOAT;
-import static android.opengl.GLES20.GL_FRAGMENT_SHADER;
-import static android.opengl.GLES20.GL_TRIANGLES;
-import static android.opengl.GLES20.GL_VERTEX_SHADER;
 import static android.opengl.GLES20.glClearColor;
-import static android.opengl.GLES20.glDrawArrays;
-import static android.opengl.GLES20.glEnableVertexAttribArray;
-import static android.opengl.GLES20.glGetAttribLocation;
-import static android.opengl.GLES20.glGetUniformLocation;
-import static android.opengl.GLES20.glUniform4f;
-import static android.opengl.GLES20.glUseProgram;
 import static android.opengl.GLES20.glVertexAttribPointer;
 
 import android.content.Context;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import android.os.SystemClock;
-import android.util.Log;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import com.example.gl.net.DatagramClientPointCloud;
+
 import java.nio.FloatBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -46,11 +34,18 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private final float[] projectionMatrix = new float[16];
     private final float[] viewMatrix = new float[16];
     private float[] rotationMatrix = new float[16];
+    private DatagramClientPointCloud client;
     public  MyGLRenderer(Context context){
         this.context = context;
-
+        //client = datagramClientPointCloud;
+        //this.pointsArray = points;
     }
 
+    public  MyGLRenderer(Context context, DatagramClientPointCloud client){
+        this.context = context;
+        this.client = client;
+        //this.pointsArray = points;
+    }
     public void setScale(float scale){
         this.scale = scale;
     }
@@ -74,9 +69,10 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
 
         glClearColor(1.0f, 1.0f, 0.5f, 0.1f);
-        point = new Point(context,new float[]{0.0f,0.0f,0.0f,0.5f,0.5f,0.45f,-0.5f,-0.5f,0.5f,
-                0.5f,-0.5f,1.0f,0.5f,0.5f,0.45f,-0.5f,-0.5f,0.5f,2.0f,1.0f,0.3f});
-
+//        point = new Point(context,new float[]{0.0f,0.0f,0.0f,0.5f,0.5f,0.45f,-0.5f,-0.5f,0.5f,
+//                0.5f,-0.5f,1.0f,0.5f,0.5f,0.45f,-0.5f,-0.5f,0.5f,2.0f,1.0f,0.3f});
+        //point = new Point(context,new float[]{0.0f,0.0f,0.0f});
+        point = new Point(context, client.getFloatArray());
     }
 
     @Override
@@ -99,6 +95,24 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
             top *= ratio;
         }
 
+        gl10.glMatrixMode(GL10.GL_PROJECTION);
+        //Умножаем ее на единичную
+        gl10.glLoadIdentity(); //Выбираем матрицу вида
+        gl10.glMatrixMode(GL10.GL_MODELVIEW); //Ее тоже умножаем на единичную
+        gl10.glLoadIdentity();
+
+        float[] matDiffuse = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] matSpecular = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightDiffuse = {1.0f, 1.0f, 1.0f, 1.0f};
+        float[] lightPosition = {0.0f, 0.0f, -10f, 1.0f};
+        float lightShininess = 60.0f;
+        gl10.glMaterialfv(GL10.GL_FRONT, GL10.GL_DIFFUSE, FloatBuffer.wrap(matDiffuse));
+        gl10.glMaterialfv(GL10.GL_FRONT, GL10.GL_SPECULAR, FloatBuffer.wrap(matSpecular));
+        gl10.glMaterialf(GL10.GL_FRONT, GL10.GL_SHININESS, lightShininess); //Указываем, что параметры необходимо применить //к источнику света GL_LIGHT0
+        gl10.glLightfv(GL10.GL_LIGHT0, GL10.GL_DIFFUSE, FloatBuffer.wrap(lightDiffuse));
+        gl10.glLightfv(GL10.GL_LIGHT0, GL10.GL_POSITION, FloatBuffer.wrap(lightPosition)); //Включаем источник света GL_LIGHT0
+        gl10.glEnable(GL10.GL_LIGHT0);
+
         Matrix.frustumM(projectionMatrix, 0, left, right, bottom, top, near, far);
         glClearColor(0f, 0f, 0f, 1f);
     }
@@ -106,7 +120,9 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 gl10) {
         float[] scratch = new float[16];
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
+        gl10.glClear(GL10.GL_COLOR_BUFFER_BIT | GL10.GL_DEPTH_BUFFER_BIT);
+        gl10.glMatrixMode(GL10.GL_PROJECTION);
+
         createViewMatrix();
         Matrix.multiplyMM(vPMatrix,0,projectionMatrix,0,viewMatrix,0);
         Matrix.setRotateM(rotationMatrix, 0, angleZ, 0, 0, -1.0f);
@@ -114,11 +130,15 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         Matrix.setRotateM(rotationMatrix,0, angleY, 0, -1.0f,0);
         Matrix.multiplyMM(scratch, 0, scratch, 0, rotationMatrix, 0);
         Matrix.scaleM(scratch,0,scratch,0,scale,scale,scale);
-        //tr.draw(vPMatrix);
         point.draw(scratch);
     }
 
     private void createViewMatrix() {
+        if(client != null){
+            point.setPointsCords(client.getFloatArray());
+        }else{
+            point.setPointsCords(new float[]{0,0,0});
+        }
 
         if(isCameraRotate){
             // точка положения камеры
@@ -179,5 +199,9 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     }
     public boolean isCameraRotate(){
         return isCameraRotate;
+    }
+
+    public void setClient(DatagramClientPointCloud client) {
+        this.client = client;
     }
 }
