@@ -38,6 +38,8 @@ public class PointCloudView extends RelativeLayout {
                     yRotate.setChecked(!isChecked);
                     pointCloudGLSurfaceView.setRotateZ(!isChecked);
                     zRotate.setChecked(!isChecked);
+                }else{
+                    pointCloudGLSurfaceView.setRotateX(isChecked);
                 }
             }
         });
@@ -51,6 +53,8 @@ public class PointCloudView extends RelativeLayout {
                     zRotate.setChecked(!isChecked);
                     pointCloudGLSurfaceView.setRotateX(!isChecked);
                     xRotate.setChecked(!isChecked);
+                }else{
+                    pointCloudGLSurfaceView.setRotateY(isChecked);
                 }
             }
         });
@@ -63,6 +67,8 @@ public class PointCloudView extends RelativeLayout {
                     xRotate.setChecked(!isChecked);
                     pointCloudGLSurfaceView.setRotateY(isChecked);
                     yRotate.setChecked(!isChecked);
+                }else{
+                    pointCloudGLSurfaceView.setRotateZ(isChecked);
                 }
             }
         });

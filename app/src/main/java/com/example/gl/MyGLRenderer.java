@@ -25,9 +25,11 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private Point point;
     private float angleZ = 0;
     private float angleY = 0;
+    private float angleX = 0;
     private boolean isCameraRotate = false;
     private float angleCameraZ = 1;
     private float angleCameraY = 1;
+    private float angleCameraX = 1;
     private float scale = 1;
     private final static long TIME = 10000;
     private final float[] vPMatrix = new float[16];
@@ -113,7 +115,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         gl10.glLightfv(GL10.GL_LIGHT0, GL10.GL_POSITION, FloatBuffer.wrap(lightPosition)); //Включаем источник света GL_LIGHT0
         gl10.glEnable(GL10.GL_LIGHT0);
 
-        Matrix.frustumM(projectionMatrix, 0, left, right, bottom, top, near, far);
+        Matrix.frustumM(projectionMatrix, 0, left*scale, right*scale, bottom*scale, top*scale, near*scale, far*scale);
         glClearColor(0f, 0f, 0f, 1f);
     }
 
@@ -129,6 +131,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         Matrix.multiplyMM(scratch, 0, vPMatrix, 0, rotationMatrix, 0);
         Matrix.setRotateM(rotationMatrix,0, angleY, 0, -1.0f,0);
         Matrix.multiplyMM(scratch, 0, scratch, 0, rotationMatrix, 0);
+        Matrix.setRotateM(rotationMatrix,0,angleX,-1.0f,0,0);
+        Matrix.multiplyMM(scratch,0,scratch,0,rotationMatrix,0);
         Matrix.scaleM(scratch,0,scratch,0,scale,scale,scale);
         point.draw(scratch);
     }
@@ -203,5 +207,21 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     public void setClient(DatagramClientPointCloud client) {
         this.client = client;
+    }
+
+    public float getAngleCameraX() {
+        return angleCameraX;
+    }
+
+    public void setAngleCameraX(float angleCameraX) {
+        this.angleCameraX = angleCameraX;
+    }
+
+    public float getAngleX() {
+        return angleX;
+    }
+
+    public void setAngleX(float angleX) {
+        this.angleX = angleX;
     }
 }
